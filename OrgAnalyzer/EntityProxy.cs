@@ -36,6 +36,9 @@ namespace Rappen.XTB.OrgAnalyzer
             return defaultvalue;
         }
 
+        [Category("Identity")]
+        public virtual Guid Id { get => entity.Id; }
+
         [Category("Timestamps")]
         public virtual DateTime Created { get => entity.GetAttributeValue<DateTime>("createdon"); }
 

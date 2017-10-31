@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xrm.Sdk;
+using Microsoft.Xrm.Sdk.Query;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -6,29 +7,43 @@ using System.Linq;
 
 namespace Rappen.XTB.OrgAnalyzer
 {
-    public class OrgMetrics : EntityProxy
+    public class OrgMetrics : EntityWithRoles
     {
         private List<Solution> solutions;
         private List<User> users;
 
-        public OrgMetrics(Entity org, List<Solution> sols, List<User> users) : base(org)
+        public OrgMetrics(Entity entity, Action<User> loadRoles) : base(entity, loadRoles)
         {
-            SetSolutions(sols);
-            SetUsers(users);
+            SetPropertyVisibility();
+        }
+
+        protected override void SetPropertyVisibility()
+        {
+            base.SetPropertyVisibility();
+            setBrowsableProperty("Solutions", solutions != null);
+            setBrowsableProperty("SolutionsTemp", solutions == null);
+            setBrowsableProperty("Users", users != null);
+            setBrowsableProperty("UsersTemp", users == null);
         }
 
         public void SetSolutions(List<Solution> sols)
         {
             solutions = sols;
-            setBrowsableProperty("Solutions", sols != null);
-            setBrowsableProperty("SolutionsTemp", sols == null);
+            SetPropertyVisibility();
         }
 
         public void SetUsers(List<User> users)
         {
             this.users = users;
-            setBrowsableProperty("Users", users != null);
-            setBrowsableProperty("UsersTemp", users == null);
+            SetPropertyVisibility();
+        }
+
+        public override QueryExpression GetRolesQuery()
+        {
+            return new QueryExpression("role")
+            {
+                ColumnSet = new ColumnSet(true)
+            };
         }
 
         [Category("Organization")]

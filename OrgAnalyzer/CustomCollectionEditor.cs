@@ -1,15 +1,16 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel.Design;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace Rappen.XTB.OrgAnalyzer
 {
     public class CustomCollectionEditor : CollectionEditor
     {
+        public delegate void MySelectedGridItemChangedEventHandler(object sender,
+                                       SelectedGridItemChangedEventArgs e);
+
+        public static event MySelectedGridItemChangedEventHandler MySelectedGridItemChanged;
+
         #region Public Constructors
 
         public CustomCollectionEditor(Type type) : base(type) { }
@@ -37,6 +38,7 @@ namespace Rappen.XTB.OrgAnalyzer
             {
                 prop.ToolbarVisible = false;
                 prop.PropertySort = PropertySort.Categorized;
+                prop.SelectedGridItemChanged += new SelectedGridItemChangedEventHandler(collection_SelectedGridItemChanged);
             }
             collectionForm.Width = 800;
             collectionForm.Height = 600;
@@ -46,6 +48,14 @@ namespace Rappen.XTB.OrgAnalyzer
                 list.Width = 300;
             }
             return collectionForm;
+        }
+
+        private void collection_SelectedGridItemChanged(object sender, SelectedGridItemChangedEventArgs e)
+        {
+            if (MySelectedGridItemChanged != null)
+            {
+                MySelectedGridItemChanged(sender, e);
+            }
         }
 
         #endregion Protected Methods

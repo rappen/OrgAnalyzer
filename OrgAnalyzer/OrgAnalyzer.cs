@@ -1,15 +1,12 @@
-﻿using System;
+﻿using Microsoft.Xrm.Sdk.Query;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Drawing;
 using System.Data;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using XrmToolBox.Extensibility;
 using XrmToolBox.Extensibility.Interfaces;
-using Microsoft.Xrm.Sdk.Query;
 
 namespace Rappen.XTB.OrgAnalyzer
 {
@@ -24,6 +21,7 @@ namespace Rappen.XTB.OrgAnalyzer
         public OrgAnalyzer()
         {
             InitializeComponent();
+            CustomCollectionEditor.MySelectedGridItemChanged += CustomCollectionEditor_MySelectedGridItemChanged;
         }
 
         private void OrgAnalyzer_Load(object sender, EventArgs e)
@@ -66,6 +64,8 @@ namespace Rappen.XTB.OrgAnalyzer
         private void OrgAnalyzer_ConnectionUpdated(object sender, ConnectionUpdatedEventArgs e)
         {
             mySettings.LastUsedOrganizationWebappUrl = e.ConnectionDetail.WebApplicationUrl;
+            propertyGrid1.SelectedObject = null;
+            propertyGrid1.Refresh();
             LogInfo("Connection has changed to: {0}", e.ConnectionDetail.WebApplicationUrl);
         }
 
@@ -87,15 +87,47 @@ namespace Rappen.XTB.OrgAnalyzer
 
         private void toolStripButton1_Click(object sender, EventArgs e)
         {
-            ExecuteMethod(Analyze);
+            ExecuteMethod(LoadOrganization);
         }
 
-        private void Analyze()
+        private void LoadOrganization()
         {
             WorkAsync(new WorkAsyncInfo
             {
-                Message = "Analyzing...",
                 Work = loadOrganization,
+                ProgressChanged = handleProgress,
+                PostWorkCallBack = handlePostWork
+            });
+        }
+
+        private void LoadSolutions()
+        {
+            WorkAsync(new WorkAsyncInfo
+            {
+                Work = loadSolutions,
+                AsyncArgument = propertyGrid1.SelectedObject,
+                ProgressChanged = handleProgress,
+                PostWorkCallBack = handlePostWork
+            });
+        }
+
+        private void LoadUsers()
+        {
+            WorkAsync(new WorkAsyncInfo
+            {
+                Work = loadUsers,
+                AsyncArgument = propertyGrid1.SelectedObject,
+                ProgressChanged = handleProgress,
+                PostWorkCallBack = handlePostWork
+            });
+        }
+
+        private void LoadRoles(User user)
+        {
+            WorkAsync(new WorkAsyncInfo
+            {
+                Work = loadRoles,
+                AsyncArgument = user ?? propertyGrid1.SelectedObject,
                 ProgressChanged = handleProgress,
                 PostWorkCallBack = handlePostWork
             });
@@ -103,7 +135,7 @@ namespace Rappen.XTB.OrgAnalyzer
 
         private void loadOrganization(BackgroundWorker worker, DoWorkEventArgs args)
         {
-            worker.ReportProgress(30, "Organization");
+            worker.ReportProgress(10, "Loading Organization...");
             var org = Service.RetrieveMultiple(
                 new QueryExpression("organization")
                 {
@@ -112,13 +144,13 @@ namespace Rappen.XTB.OrgAnalyzer
                 .Entities
                 .FirstOrDefault();
             worker.ReportProgress(80, "Finalizing");
-            args.Result = new OrgMetrics(org, null, null);
+            args.Result = new OrgMetrics(org, LoadRoles);
         }
 
         private void loadSolutions(BackgroundWorker worker, DoWorkEventArgs args)
         {
             var metrics = args.Argument as OrgMetrics;
-            worker.ReportProgress(60, "Solutions");
+            worker.ReportProgress(20, "Loading Solutions...");
             metrics.SetSolutions(Service.RetrieveMultiple(
                 new QueryExpression("solution")
                 {
@@ -127,24 +159,31 @@ namespace Rappen.XTB.OrgAnalyzer
                 .Entities
                 .Select(s => new Solution(s))
                 .OrderBy(s => s.UniqueName).ToList());
-            worker.ReportProgress(80, "Finalizing");
-            args.Result = metrics;
         }
 
         private void loadUsers(BackgroundWorker worker, DoWorkEventArgs args)
         {
             var metrics = args.Argument as OrgMetrics;
-            worker.ReportProgress(60, "Users");
+            worker.ReportProgress(30, "Loading Users...");
             metrics.SetUsers(Service.RetrieveMultiple(
                 new QueryExpression("systemuser")
                 {
                     ColumnSet = new ColumnSet(true)
                 })
                 .Entities
-                .Select(s => new User(s, null))
+                .Select(s => new User(s, LoadRoles))
                 .OrderBy(s => s.FullName).ToList());
-            worker.ReportProgress(80, "Finalizing");
-            args.Result = metrics;
+        }
+
+        private void loadRoles(BackgroundWorker worker, DoWorkEventArgs args)
+        {
+            var entity = args.Argument as EntityWithRoles;
+            worker.ReportProgress(40, "Loading Roles...");
+            var roles = new List<Role>(Service.RetrieveMultiple(entity.GetRolesQuery())
+                .Entities
+                .Select(r => new Role(r))
+                .OrderBy(r => r.Name));
+            entity.SetRoles(roles);
         }
 
         private void handleProgress(ProgressChangedEventArgs args)
@@ -164,35 +203,36 @@ namespace Rappen.XTB.OrgAnalyzer
             {
                 propertyGrid1.SelectedObject = result;
             }
+            else
+            {
+                propertyGrid1.Refresh();
+            }
         }
 
         internal void propertyGrid1_SelectedGridItemChanged(object sender, SelectedGridItemChangedEventArgs e)
         {
             if (e.NewSelection?.PropertyDescriptor?.Name == "SolutionsTemp")
             {
-                WorkAsync(new WorkAsyncInfo
-                {
-                    Message = "Analyzing...",
-                    Work = loadSolutions,
-                    AsyncArgument = propertyGrid1.SelectedObject,
-                    ProgressChanged = handleProgress,
-                    PostWorkCallBack = handlePostWork
-                });
+                LoadSolutions();
             }
             else if (e.NewSelection?.PropertyDescriptor?.Name == "UsersTemp")
             {
-                WorkAsync(new WorkAsyncInfo
-                {
-                    Message = "Analyzing...",
-                    Work = loadUsers,
-                    AsyncArgument = propertyGrid1.SelectedObject,
-                    ProgressChanged = handleProgress,
-                    PostWorkCallBack = handlePostWork
-                });
+                LoadUsers();
             }
-            else if (e.NewSelection?.PropertyDescriptor?.Name == "Solutions")
+            else if (e.NewSelection?.PropertyDescriptor?.Name == "RolesTemp")
             {
+                LoadRoles(null);
             }
         }
+
+        private void CustomCollectionEditor_MySelectedGridItemChanged(object sender, SelectedGridItemChangedEventArgs e)
+        {
+            if (e.NewSelection?.PropertyDescriptor?.Name == "RolesTemp")
+            {
+                var user = (sender as PropertyGrid)?.SelectedObject as User;
+                LoadRoles(user);
+            }
+        }
+
     }
 }

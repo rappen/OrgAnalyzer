@@ -112,6 +112,7 @@
   <ItemGroup>
     <Compile Include="CustomCollectionEditor.cs" />
     <Compile Include="EntityProxy.cs" />
+    <Compile Include="EntityWithRoles.cs" />
     <Compile Include="OrgMetrics.cs" />
     <Compile Include="PluginInfo.cs" />
     <Compile Include="OrgAnalyzer.cs">
