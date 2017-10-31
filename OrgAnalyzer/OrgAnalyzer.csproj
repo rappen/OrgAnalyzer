@@ -110,6 +110,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CustomCollectionEditor.cs" />
     <Compile Include="EntityProxy.cs" />
     <Compile Include="OrgMetrics.cs" />
     <Compile Include="PluginInfo.cs" />
@@ -120,8 +121,10 @@
       <DependentUpon>OrgAnalyzer.cs</DependentUpon>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Role.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="Solution.cs" />
+    <Compile Include="User.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

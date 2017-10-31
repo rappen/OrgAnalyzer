@@ -1,12 +1,31 @@
 ﻿using Microsoft.Xrm.Sdk;
 using System;
 using System.ComponentModel;
+using System.Reflection;
 
 namespace Rappen.XTB.OrgAnalyzer
 {
     public class EntityProxy
     {
         protected Entity entity;
+
+        public EntityProxy(Entity entity)
+        {
+            this.entity = entity;
+        }
+
+        protected void setBrowsableProperty(string strPropertyName, bool bIsBrowsable)
+        {
+            // Get the Descriptor's Properties
+            PropertyDescriptor theDescriptor = TypeDescriptor.GetProperties(this.GetType())[strPropertyName];
+
+            // Get the Descriptor's "Browsable" Attribute
+            BrowsableAttribute theDescriptorBrowsableAttribute = (BrowsableAttribute)theDescriptor.Attributes[typeof(BrowsableAttribute)];
+            FieldInfo isBrowsable = theDescriptorBrowsableAttribute.GetType().GetField("Browsable", BindingFlags.IgnoreCase | BindingFlags.NonPublic | BindingFlags.Instance);
+
+            // Set the Descriptor's "Browsable" Attribute
+            isBrowsable.SetValue(theDescriptorBrowsableAttribute, bIsBrowsable);
+        }
 
         protected string getEntityValueStr(string attribute, string defaultvalue = null)
         {

@@ -8,18 +8,34 @@ namespace Rappen.XTB.OrgAnalyzer
 {
     public class OrgMetrics : EntityProxy
     {
-        public OrgMetrics(Entity org, List<Solution> sols)
+        private List<Solution> solutions;
+        private List<User> users;
+
+        public OrgMetrics(Entity org, List<Solution> sols, List<User> users) : base(org)
         {
-            this.entity = org;
-            this.Solutions = sols;
+            SetSolutions(sols);
+            SetUsers(users);
         }
 
-        [Category("Solutions")]
-        [Editor(typeof(SolutionCollectionEditor), typeof(System.Drawing.Design.UITypeEditor))]
-        public List<Solution> Solutions { get; }
+        public void SetSolutions(List<Solution> sols)
+        {
+            solutions = sols;
+            setBrowsableProperty("Solutions", sols != null);
+            setBrowsableProperty("SolutionsTemp", sols == null);
+        }
+
+        public void SetUsers(List<User> users)
+        {
+            this.users = users;
+            setBrowsableProperty("Users", users != null);
+            setBrowsableProperty("UsersTemp", users == null);
+        }
 
         [Category("Organization")]
         public string Name { get => getEntityValueStr("name"); }
+
+        [Category("Organization")]
+        public override DateTime Created => base.Created;
 
         [Category("Organization")]
         [DisplayName("Initial Version")]
@@ -35,18 +51,46 @@ namespace Rappen.XTB.OrgAnalyzer
         public string SQLAccesGroupName { get => getEntityValueStr("sqlaccessgroupname"); }
 
         [Category("Solutions")]
+        [Browsable(false)]
+        [Editor(typeof(CustomCollectionEditor), typeof(System.Drawing.Design.UITypeEditor))]
+        public List<Solution> Solutions { get => solutions; }
+
+        [Category("Solutions")]
+        [Browsable(true)]
+        [DisplayName("Solutions")]
+        public string SolutionsTemp { get => "Click to load"; }
+
+        [Category("Solutions")]
         [DisplayName("Solution Count (total)")]
-        public int SolutionCount { get => Solutions.Count; }
+        public int? SolutionCount { get => solutions?.Count; }
 
         [Category("Solutions")]
         [DisplayName("Solution Count (unmanaged)")]
         [Description("Number of solutions with flag IsManaged = false.")]
-        public int SolutionCountUnmanaged { get => Solutions.Where(s => !s.IsManaged).Count(); }
+        public int? SolutionCountUnmanaged { get => solutions?.Where(s => !s.IsManaged)?.Count(); }
 
         [Category("Solutions")]
         [DisplayName("Default Solution")]
-        [TypeConverter(typeof(SolutionConverter))]
-        public Solution DefaultSolution { get => Solutions.Where(s => s.UniqueName == "Default").FirstOrDefault(); }
+        public Solution DefaultSolution { get => solutions?.Where(s => s.UniqueName == "Default")?.FirstOrDefault(); }
+
+        [Category("Users")]
+        [Browsable(false)]
+        [Editor(typeof(CustomCollectionEditor), typeof(System.Drawing.Design.UITypeEditor))]
+        public List<User> Users { get => users; }
+
+        [Category("Users")]
+        [Browsable(true)]
+        [DisplayName("Users")]
+        public string UsersTemp { get => "Click to load"; }
+
+        [Category("Users")]
+        [DisplayName("User Count (total)")]
+        public int? UserCount { get => users?.Count; }
+
+        [Category("Users")]
+        [DisplayName("User Count (active)")]
+        [Description("Number of active users.")]
+        public int? UserCountActive { get => users?.Where(u => !u.IsActive)?.Count(); }
 
         [Browsable(false)]
         public override DateTime Updated => base.Updated;

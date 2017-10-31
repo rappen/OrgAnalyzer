@@ -95,13 +95,13 @@ namespace Rappen.XTB.OrgAnalyzer
             WorkAsync(new WorkAsyncInfo
             {
                 Message = "Analyzing...",
-                Work = handleWork,
+                Work = loadOrganization,
                 ProgressChanged = handleProgress,
                 PostWorkCallBack = handlePostWork
             });
         }
 
-        private void handleWork(BackgroundWorker worker, DoWorkEventArgs args)
+        private void loadOrganization(BackgroundWorker worker, DoWorkEventArgs args)
         {
             worker.ReportProgress(30, "Organization");
             var org = Service.RetrieveMultiple(
@@ -111,17 +111,40 @@ namespace Rappen.XTB.OrgAnalyzer
                 })
                 .Entities
                 .FirstOrDefault();
+            worker.ReportProgress(80, "Finalizing");
+            args.Result = new OrgMetrics(org, null, null);
+        }
+
+        private void loadSolutions(BackgroundWorker worker, DoWorkEventArgs args)
+        {
+            var metrics = args.Argument as OrgMetrics;
             worker.ReportProgress(60, "Solutions");
-            var sols = Service.RetrieveMultiple(
+            metrics.SetSolutions(Service.RetrieveMultiple(
                 new QueryExpression("solution")
                 {
                     ColumnSet = new ColumnSet(true)
                 })
                 .Entities
                 .Select(s => new Solution(s))
-                .OrderBy(s => s.UniqueName).ToList();
+                .OrderBy(s => s.UniqueName).ToList());
             worker.ReportProgress(80, "Finalizing");
-            args.Result = new OrgMetrics(org, sols);
+            args.Result = metrics;
+        }
+
+        private void loadUsers(BackgroundWorker worker, DoWorkEventArgs args)
+        {
+            var metrics = args.Argument as OrgMetrics;
+            worker.ReportProgress(60, "Users");
+            metrics.SetUsers(Service.RetrieveMultiple(
+                new QueryExpression("systemuser")
+                {
+                    ColumnSet = new ColumnSet(true)
+                })
+                .Entities
+                .Select(s => new User(s, null))
+                .OrderBy(s => s.FullName).ToList());
+            worker.ReportProgress(80, "Finalizing");
+            args.Result = metrics;
         }
 
         private void handleProgress(ProgressChangedEventArgs args)
@@ -140,6 +163,35 @@ namespace Rappen.XTB.OrgAnalyzer
             if (result != null)
             {
                 propertyGrid1.SelectedObject = result;
+            }
+        }
+
+        internal void propertyGrid1_SelectedGridItemChanged(object sender, SelectedGridItemChangedEventArgs e)
+        {
+            if (e.NewSelection?.PropertyDescriptor?.Name == "SolutionsTemp")
+            {
+                WorkAsync(new WorkAsyncInfo
+                {
+                    Message = "Analyzing...",
+                    Work = loadSolutions,
+                    AsyncArgument = propertyGrid1.SelectedObject,
+                    ProgressChanged = handleProgress,
+                    PostWorkCallBack = handlePostWork
+                });
+            }
+            else if (e.NewSelection?.PropertyDescriptor?.Name == "UsersTemp")
+            {
+                WorkAsync(new WorkAsyncInfo
+                {
+                    Message = "Analyzing...",
+                    Work = loadUsers,
+                    AsyncArgument = propertyGrid1.SelectedObject,
+                    ProgressChanged = handleProgress,
+                    PostWorkCallBack = handlePostWork
+                });
+            }
+            else if (e.NewSelection?.PropertyDescriptor?.Name == "Solutions")
+            {
             }
         }
     }
