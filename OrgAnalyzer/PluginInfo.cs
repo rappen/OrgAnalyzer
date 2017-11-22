@@ -11,9 +11,9 @@ namespace Rappen.XTB.OrgAnalyzer
         ExportMetadata("Description", "Analyze various metrics in Microsoft Dynamics 365"),
         ExportMetadata("SmallImageBase64", null),
         ExportMetadata("BigImageBase64", null),
-        ExportMetadata("BackgroundColor", "#ffffff"), // Use a HTML color name
-        ExportMetadata("PrimaryFontColor", "#000000"), // Or an hexadecimal code
-        ExportMetadata("SecondaryFontColor", "Blue")]
+        ExportMetadata("BackgroundColor", "#f8f8ff"),
+        ExportMetadata("PrimaryFontColor", "#00319C"),
+        ExportMetadata("SecondaryFontColor", "#9439B5")]
     public class PluginInfo : PluginBase
     {
         public override IXrmToolBoxPluginControl GetControl()
