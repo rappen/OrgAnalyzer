@@ -109,5 +109,14 @@ namespace Rappen.XTB.OrgAnalyzer
 
         [Browsable(false)]
         public override DateTime Updated => base.Updated;
+
+        public SomeType TheType { get; set; }
+    }
+
+    public enum SomeType
+    {
+        First,
+        Second,
+        Third
     }
 }

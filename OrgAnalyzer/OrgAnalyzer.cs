@@ -102,13 +102,16 @@ namespace Rappen.XTB.OrgAnalyzer
 
         private void LoadSolutions()
         {
-            WorkAsync(new WorkAsyncInfo
+            if (propertyGrid1.SelectedObject is OrgMetrics metrics && metrics.Solutions == null)
             {
-                Work = loadSolutions,
-                AsyncArgument = propertyGrid1.SelectedObject,
-                ProgressChanged = handleProgress,
-                PostWorkCallBack = handlePostWork
-            });
+                WorkAsync(new WorkAsyncInfo
+                {
+                    Work = loadSolutions,
+                    AsyncArgument = propertyGrid1.SelectedObject,
+                    ProgressChanged = handleProgress,
+                    PostWorkCallBack = handlePostWork
+                });
+            }
         }
 
         private void LoadUsers()
@@ -211,7 +214,11 @@ namespace Rappen.XTB.OrgAnalyzer
 
         internal void propertyGrid1_SelectedGridItemChanged(object sender, SelectedGridItemChangedEventArgs e)
         {
-            if (e.NewSelection?.PropertyDescriptor?.Name == "SolutionsTemp")
+            if (e.NewSelection.GridItemType == GridItemType.Category && e.NewSelection.Label == "Solutions" && e.NewSelection.Expanded)
+            {
+                LoadSolutions();
+            }
+            else if (e.NewSelection?.PropertyDescriptor?.Name == "SolutionsTemp")
             {
                 LoadSolutions();
             }
